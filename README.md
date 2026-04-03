@@ -2,48 +2,64 @@
 
 ## Overview
 
-This project implements a simple recommendation API designed to suggest **Japanese products to international users**.
+This project implements a recommendation API designed to suggest **Japanese products to international users**.
 
-The goal is to build a system that is:
+The objective is to build a system that is:
 
 * Simple
 * Explainable
+* Scalable
 * Easily extensible
 
-while reflecting real-world considerations such as user preferences and regional differences.
+while reflecting real-world considerations such as user preferences, regional differences, and system performance constraints.
 
 ---
 
 ## Approach
 
-I implemented a **hybrid recommendation system** combining three key factors:
+I implemented a **hybrid recommendation system** combining three core signals:
 
 ### 1. Popularity
 
-Items with higher popularity are more likely to be recommended.
+A global baseline signal ensuring that widely liked products are always considered.
 
 ### 2. User Preference Matching
 
-Products are matched against user interests (e.g., snacks, tea).
+Products are matched against user interests (e.g., snacks, tea), allowing basic personalization.
 
 ### 3. Regional Assumptions
 
-Basic assumptions about international preferences are included to simulate real-world behavior
-(e.g., snack-based products for certain regions).
+Simple heuristics are used to simulate differences in international markets (e.g., snack-heavy preferences in certain regions).
+
+---
+
+## Why a Rule-Based System (Instead of ML)
+
+I intentionally chose a rule-based approach for this implementation.
+
+### Reasons:
+
+* The system uses **synthetic data**, so training a machine learning model would not produce meaningful results
+* A rule-based system is **fully interpretable**, making it easier to understand and debug
+* It provides a strong **baseline system**, which is how real-world recommendation systems are often developed initially
+
+In a production setting, this system would naturally evolve into an ML-based pipeline once sufficient user interaction data is available.
 
 ---
 
 ## Scoring Function
 
-Each item is assigned a score using:
+Each item is scored using:
 
 score = 0.5 * popularity + 0.3 * preference_match + 0.2 * regional_bonus
 
-This keeps the system:
+This weighted combination ensures:
 
-* Interpretable
-* Easy to debug
-* Easy to extend
+* Stability (via popularity)
+* Personalization (via preferences)
+* Context awareness (via regional signals)
+
+The design prioritizes **clarity and extensibility**, allowing easy replacement or augmentation with ML models later.
 
 ---
 
@@ -70,8 +86,8 @@ GET /recommend?user_id=A&limit=3
 
 ## How to Run
 
-* pip install -r requirements.txt
-* uvicorn main:app --reload
+pip install -r requirements.txt
+uvicorn main:app --reload
 
 Then open:
 http://127.0.0.1:8000/docs
@@ -80,9 +96,10 @@ http://127.0.0.1:8000/docs
 
 ## Design Choices
 
-* Chose a **rule-based hybrid system** to prioritize clarity over complexity
-* Avoided heavy ML models to keep the system explainable
-* Focused on international users by incorporating simple regional behavior
+* Prioritized **simplicity and clarity** over premature optimization
+* Used a **hybrid scoring approach** to simulate real-world recommendation logic
+* Designed the system to be easily extensible toward ML-based approaches
+* Focused on **international users**, incorporating regional behavior assumptions
 
 ---
 
@@ -90,52 +107,111 @@ http://127.0.0.1:8000/docs
 
 ### Current (Small Scale)
 
-* Real-time scoring for each request
+* Recommendations are computed in real-time per request
+* Suitable for low traffic and prototyping
+
+---
 
 ### ~10K Users
 
-* Introduce caching (e.g., Redis)
-* Precompute recommendations periodically
+At this stage, repeated computation becomes inefficient.
+
+Improvements:
+
+* Introduce **caching (e.g., Redis)** to store recommendations for frequently active users
+* Use **precomputation** to generate recommendations periodically (e.g., every few hours)
+* Reduce latency by serving cached results instead of recomputing
+
+---
 
 ### ~1M Users
 
-* Separate candidate generation and ranking
-* Use batch pipelines for offline processing
-* Use distributed systems for scalability
+At larger scale, system architecture needs to change:
+
+* Separate into:
+
+  * **Candidate Generation** (retrieve a subset of relevant items)
+  * **Ranking** (score and sort candidates)
+
+* Use **offline batch pipelines** to compute recommendations for large user sets
+
+* Store results in databases or caches for fast retrieval
+
+* Introduce distributed systems for handling large-scale traffic
 
 ---
 
 ## Performance Improvements
 
-* Caching frequently requested recommendations
-* Batching computations for efficiency
-* Precomputing recommendations instead of real-time scoring
+### Caching
+
+* Store recommendations per user to avoid recomputation
+* Reduces latency and improves throughput
+
+### Batching
+
+* Instead of scoring items individually per request, process multiple items or users together
+* Especially useful when integrating ML models (vectorized computation)
+* Improves efficiency and resource utilization
+
+### Precomputation
+
+* Generate recommendations offline at regular intervals
+* Allows real-time API to remain lightweight
 
 ---
 
 ## Assumptions
 
-* User preferences vary by region
-* New users may lack interaction data (cold start → popularity fallback)
-* Cultural familiarity affects product recommendations
+* User preferences vary significantly across regions
+* New users may not have interaction history (cold start → popularity fallback)
+* Cultural familiarity affects product engagement
+* Product demand patterns differ across international markets
 
 ---
 
-## Future Improvements
+## Future Improvements (ML Integration)
 
-* Replace rule-based scoring with ML models
-* Introduce collaborative filtering
-* Use real user interaction data
-* Improve personalization using behavioral signals
+Once real interaction data is available, the system can evolve into:
+
+* **Collaborative filtering** (user-user or item-item similarity)
+* **Learning-to-rank models** for optimized scoring
+* **Behavioral feature engineering** (clicks, purchases, dwell time)
+
+The current scoring function can serve as a **baseline model** for these approaches.
 
 ---
 
-## Advanced Idea
+## Advanced Idea: Mixture-of-Experts (MoE)
 
-For diverse international users, a **Mixture-of-Experts (MoE)** approach could allow different models to specialize for different regions or user segments, improving personalization at scale.
+For large-scale international systems, user behavior becomes highly heterogeneous.
+
+A **Mixture-of-Experts (MoE)** architecture can address this by:
+
+* Training multiple specialized models (experts), each focused on:
+
+  * Different regions
+  * Different user segments
+  * Different product categories
+
+* Using a **gating mechanism** to dynamically select the most relevant expert for each request
+
+This enables:
+
+* Better personalization
+* Improved scalability
+* More efficient use of model capacity
 
 ---
 
 ## Conclusion
 
-This project demonstrates a practical approach to building a recommendation API that balances simplicity, clarity, and scalability, while aligning with real-world product needs.
+This project demonstrates a practical and production-aware approach to building a recommendation API.
+
+It emphasizes:
+
+* Clear system design
+* Realistic scalability considerations
+* Thoughtful progression from rule-based systems to ML-driven architectures
+
+while maintaining alignment with real-world product requirements.
