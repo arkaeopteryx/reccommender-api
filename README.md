@@ -86,8 +86,8 @@ GET /recommend?user_id=A&limit=3
 
 ## How to Run
 
-*pip install -r requirements.txt
-*uvicorn main:app --reload in cmd
+* pip install -r requirements.txt
+* uvicorn main:app --reload in cmd
 
 Then open:
 http://127.0.0.1:8000/docs
